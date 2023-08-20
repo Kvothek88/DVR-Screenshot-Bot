@@ -1,4 +1,5 @@
 from datetime import date
+import csv
 import os
 
 today = date.today()
@@ -6,11 +7,11 @@ today = today.strftime("%b-%d-%Y")
 
 folder_name = str(today)
 
+cwd = os.getcwd()
+
 # Check if folder does not already exist
 if not os.path.exists(folder_name):
     os.mkdir(folder_name)
-
-cwd = os.getcwd()
 
 bg_color = "#009966"
 
@@ -61,10 +62,25 @@ PLANT_GROUP_6 = {"Plant 38":{"url":"https://somesite.com/login","user":"admin","
                  "Plant 39":{"url":"https://somesite.com/login","user":"admin","password":"????????"},
                  "Plant 40":{"url":"https://somesite.com/login","user":"admin","password":"????????"}}
 
-# GUI lists
-strd_gui = ["Plant 1","Plant 3","Plant 4","Plant 6","Plant 8","Plant 9","Plant 11","Plant 12","Plant 13","Plant 17","Plant 18","Plant 19","Plant 20","Plant 21","Plant 22","Plant 23","Plant 33","Plant 34","Plant 39","Plant 40"]
-new_gui = ["Plant 2","Plant 5""Plant 7","Plant 10","Plant 14","Plant 15","Plant 16","Plant 24","Plant 25","Plant 26","Plant 27","Plant 28","Plant 29","Plant 30","Plant 31","Plant 32","Plant 35","Plant 36","Plant 37","Plant 38"]
+blacklist = ["Fotolefkada","Fotoandros","Fototrikala 500","Fototrikala 1MW","Astreches 61","Astreches 51","Retziki","Magoules 49",
+             "Magoules 47","Doxara","Psichiko","Amygdalia","Ierapetra 40 Mikro","Ierapetra 40 Megalo"]
 
 # Offline plants list
 field = ["Offline Plants"]
 offline_plants = []
+# Captured Plants list in order to not take photo again
+field2 = ["Captured Plants"]
+captured_plants = []
+
+# If it does not exist create Captured Plants csv, else the plants in csv and append them in captured_plants list 
+if not os.path.exists(os.path.join(cwd,f"{folder_name}","Captured Plants.csv")):
+    file2 = open(os.path.join(cwd,f"{folder_name}","Captured Plants.csv"), 'w', newline ='')
+    with file2:
+        write = csv.writer(file2)
+        write.writerow(field2)
+else:
+    with open(os.path.join(cwd,f"{folder_name}","Captured Plants.csv"), 'r') as csvfile:
+        csvreader = csv.reader(csvfile)
+        for row in csvreader:
+            captured_plant = row[0]
+            captured_plants.append(captured_plant)
