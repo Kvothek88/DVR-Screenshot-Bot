@@ -59,8 +59,6 @@ def capture_dvr(plant_list,plant):
             driver.set_page_load_timeout(5)
             driver.get(plant_list[plant]["url"])
         except:
-            if plant == "Fotolefkada":
-                time.sleep(10)
             pyautogui.moveTo(1070,600,duration=1)
             pyautogui.click()
             pyautogui.typewrite(plant_list[plant]["user"],interval=0.1)
@@ -70,10 +68,7 @@ def capture_dvr(plant_list,plant):
             pyautogui.moveTo(1070,720,duration=1)
             pyautogui.click()
             driver.maximize_window()
-            if plant == "Fotolefkada":
-                time.sleep(15)
-            else:
-                time.sleep(5)
+            time.sleep(5)
             if plant_list[plant]["gui"] == "hik-1":
                 try:
                     driver.find_element(By.XPATH, "//button[contains(@class, 'btn')]/i[contains(@class, 'icon-playall')]").click()
