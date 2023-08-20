@@ -1,10 +1,13 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.ie.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.microsoft import IEDriverManager
 from PIL import ImageGrab
 from PIL import ImageTk
 import tkinter as tk
+import pyautogui
 import csv
 import time
 import os
@@ -13,50 +16,120 @@ from config import *
 # Function to capture screenshot
 def capture_dvr(plant_list,plant):
     global offline_plants
-    driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
-    try:
-        driver.set_page_load_timeout(70)
-        driver.get(plant_list[plant]["url"])
-    except:
-        isrunning = 0
-        offline_plants.append([plant])
-        driver.quit()
-        return
+    global blacklist
+    if plant_list[plant]["gui"] != "ever" and plant not in blacklist:
 
-    driver.maximize_window()
+        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
+        try:
+            driver.set_page_load_timeout(40)
+            driver.get(plant_list[plant]["url"])
+        except:
+            offline_plants.append([plant])
+            driver.close()
+            return
 
-    time.sleep(45)
-    username = driver.find_element(By.XPATH, '//input[@placeholder="User Name"]')
-    username.send_keys(plant_list[plant]["user"])
-    password = driver.find_element(By.XPATH, '//input[@placeholder="Password"]')
-    password.send_keys(plant_list[plant]["password"])
-    driver.find_element(By.XPATH, "//button").click()
+        driver.maximize_window()
 
-    time.sleep(45)
-    if plant in strd_gui:
-        driver.find_element(By.XPATH, "//button[contains(@class, 'btn')]/i[contains(@class, 'icon-playall')]").click()
-    elif plant in new_gui:
-        driver.find_element(By.XPATH, "//button[@title='Start All Live View']").click()
+        time.sleep(10)
 
-    time.sleep(15)
+        username = driver.find_element(By.XPATH, '//input[@placeholder="User Name"]')
+        username.send_keys(plant_list[plant]["user"])
+        password = driver.find_element(By.XPATH, '//input[@placeholder="Password"]')
+        password.send_keys(plant_list[plant]["password"])
+        driver.find_element(By.XPATH, "//button").click()
 
-    ss_region = (0,0,1920,1080)
-    ss_img = ImageGrab.grab(ss_region)
-    ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
+        time.sleep(25)
+        
+        if plant_list[plant]["gui"] == "hik-1":
+            driver.find_element(By.XPATH, "//button[contains(@class, 'btn')]/i[contains(@class, 'icon-playall')]").click()
+        elif plant_list[plant]["gui"] == "hik-2":
+            driver.find_element(By.XPATH, "//button[@title='Start All Live View']").click()
 
-    driver.quit()
+        time.sleep(10)
+
+        ss_region = (0,0,1920,1080)
+        ss_img = ImageGrab.grab(ss_region)
+        ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
+
+        driver.close()
+
+    elif plant_list[plant]["gui"] != "ever" and plant in blacklist:
+        driver = webdriver.Ie(service=Service(IEDriverManager().install()))          
+        try:
+            driver.set_page_load_timeout(5)
+            driver.get(plant_list[plant]["url"])
+        except:
+            if plant == "Fotolefkada":
+                time.sleep(10)
+            pyautogui.moveTo(1070,600,duration=1)
+            pyautogui.click()
+            pyautogui.typewrite(plant_list[plant]["user"],interval=0.1)
+            pyautogui.moveTo(1070,650,duration=1)
+            pyautogui.click()
+            pyautogui.typewrite(plant_list[plant]["password"],interval=0.1)
+            pyautogui.moveTo(1070,720,duration=1)
+            pyautogui.click()
+            driver.maximize_window()
+            if plant == "Fotolefkada":
+                time.sleep(15)
+            else:
+                time.sleep(5)
+            if plant_list[plant]["gui"] == "hik-1":
+                try:
+                    driver.find_element(By.XPATH, "//button[contains(@class, 'btn')]/i[contains(@class, 'icon-playall')]").click()
+                except:
+                    time.sleep(5)
+                    ss_region = (0,0,1920,1080)
+                    ss_img = ImageGrab.grab(ss_region)
+                    ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
+                    pyautogui.moveTo(1900,30,duration=0.5)
+                    pyautogui.click()                     
+            elif plant_list[plant]["gui"] == "hik-2":
+                try:
+                    driver.find_element(By.XPATH, "//button[@title='Start All Live View']").click()
+                except:
+                    time.sleep(5)
+                    ss_region = (0,0,1920,1080)
+                    ss_img = ImageGrab.grab(ss_region)
+                    ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
+                    pyautogui.moveTo(1900,30,duration=0.5)
+                    pyautogui.click()                     
+    else:
+        driver = webdriver.Ie(service=Service(IEDriverManager().install()))
+        try:
+            driver.set_page_load_timeout(4)
+            driver.get(plant_list[plant]["url"])
+        except:
+            pyautogui.moveTo(550,700,duration=2)
+            pyautogui.click()
+            time.sleep(5)
+            driver.maximize_window()
+            time.sleep(7)
+            ss_region = (0,0,1920,1080)
+            ss_img = ImageGrab.grab(ss_region)
+            ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg")) 
+            driver.close() 
 
 # Function to run capture_dvr for all plants in plant_list
 def run_capture_dvr(plant_list):
     global field
     global offline_plants
+    global captured_plants
+
     for plant in plant_list:
-        capture_dvr(plant_list,plant)
+        if plant not in captured_plants:
+            capture_dvr(plant_list,plant)
+            captured_plants.append([plant])
+            file = open(os.path.join(cwd,f"{folder_name}","Captured Plants.csv"), 'a', newline ='')
+            with file:
+                write = csv.writer(file)
+                write.writerow(captured_plants[-1])
+
     if offline_plants:
         filename = get_variable_name(plant_list)
-        file = open(os.path.join(cwd,f"{folder_name}",f"{filename} Offline Plants.csv"), 'w', newline ='')
-        with file:
-            write = csv.writer(file)
+        file2 = open(os.path.join(cwd,f"{folder_name}",f"{filename} Offline Plants.csv"), 'w', newline ='')
+        with file2:
+            write = csv.writer(file2)
             write.writerow(field)
             write.writerows(offline_plants)
         offline_plants.clear()
