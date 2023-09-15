@@ -22,11 +22,11 @@ slow_plants = ["Plant 3","Plant 6","Plant 27"]
 
 very_slow_plants = ["Plant 3","Plant 3"]
 
-# Offline plants list
 field = ["Offline Plants"]
 field2 = ["Captured Plants"]
-offline_plants = []
+field3 = ["Plant Status"]
 captured_plants = []
+offline_plants = []
 
 if not os.path.exists(os.path.join(cwd,f"{folder_name}","Captured Plants.csv")):
     file2 = open(os.path.join(cwd,f"{folder_name}","Captured Plants.csv"), 'w', newline ='')
@@ -39,3 +39,15 @@ else:
         for row in csvreader:
             captured_plant = row[0]
             captured_plants.append(captured_plant)
+
+if not os.path.exists(os.path.join(cwd,f"{folder_name}","Offline Plants.csv")):
+    file = open(os.path.join(cwd,f"{folder_name}","Offline Plants.csv"), 'w', newline ='')
+    with file:
+        write = csv.writer(file)
+        write.writerow(field)
+
+if not os.path.exists(os.path.join(cwd,f"{folder_name}","Cameras Status.csv")):
+    file = open(os.path.join(cwd,f"{folder_name}","Cameras Status.csv"), 'w', newline ='')
+    with file:
+        write = csv.writer(file)
+        write.writerow(field3)
