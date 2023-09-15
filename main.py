@@ -1,13 +1,16 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.ie.service import Service
+from selenium.webdriver.ie.service import Service as IEService
 from selenium.webdriver.common.by import By
 from webdriver_manager.firefox import GeckoDriverManager
 from webdriver_manager.microsoft import IEDriverManager
+import fast_colorthief
 from PIL import ImageGrab
 from PIL import ImageTk
+from skimage import io
 import tkinter as tk
 import pyautogui
+import math
 import csv
 import time
 import os
@@ -15,6 +18,7 @@ from config import *
 
 # Function to capture screenshot
 def capture_dvr(plant_list,plant,delay):
+    global captured_plants
     global offline_plants
     global blacklist
     if plant_list[plant]["gui"] != "ever" and plant not in blacklist:
@@ -24,26 +28,36 @@ def capture_dvr(plant_list,plant,delay):
             driver.set_page_load_timeout(45)
             driver.get(plant_list[plant]["url"])
         except:
-            offline_plants.append([plant])
-            driver.close()
+            offline_plants.append(plant)
+            file = open(os.path.join(cwd,f"{folder_name}","Offline Plants.csv"), 'a', newline ='')
+            with file:
+                write = csv.writer(file)
+                write.writerow([plant])
+            driver.quit()
             return
 
         driver.maximize_window()
 
         time.sleep(delay)
- 
-        username = driver.find_element(By.XPATH, '//input[@placeholder="User Name"]')
-        username.send_keys(plant_list[plant]["user"])
-        password = driver.find_element(By.XPATH, '//input[@placeholder="Password"]')
-        password.send_keys(plant_list[plant]["password"])
-        driver.find_element(By.XPATH, "//button").click()
+
+        try:
+            username = driver.find_element(By.XPATH, '//input[@placeholder="User Name"]')
+            username.send_keys(plant_list[plant]["user"])
+            password = driver.find_element(By.XPATH, '//input[@placeholder="Password"]')
+            password.send_keys(plant_list[plant]["password"])
+            driver.find_element(By.XPATH, "//button").click()
+        except:
+            pass
 
         time.sleep(delay+5)
         
-        if plant_list[plant]["gui"] == "hik-1":
-            driver.find_element(By.XPATH, "//button[contains(@class, 'btn')]/i[contains(@class, 'icon-playall')]").click()
-        elif plant_list[plant]["gui"] == "hik-2":
-            driver.find_element(By.XPATH, "//button[@title='Start All Live View']").click()
+        try:
+            if plant_list[plant]["gui"] == "hik-1":
+                driver.find_element(By.XPATH, "//button[contains(@class, 'btn')]/i[contains(@class, 'icon-playall')]").click()
+            elif plant_list[plant]["gui"] == "hik-2":
+                driver.find_element(By.XPATH, "//button[@title='Start All Live View']").click()
+        except:
+            pass
 
         time.sleep(delay)
 
@@ -51,24 +65,29 @@ def capture_dvr(plant_list,plant,delay):
         ss_img = ImageGrab.grab(ss_region)
         ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
 
-        driver.close()
+        if plant not in offline_plants:
+            check_cameras(plant_list[plant]["grid"],plant_list[plant]["cams"],plant_list,plant)
+
+        driver.quit()
 
     elif plant_list[plant]["gui"] != "ever" and plant in blacklist:
-        driver = webdriver.Ie(service=Service(IEDriverManager().install()))          
+        ie_options = webdriver.IeOptions()
+        ie_options.attach_to_edge_chrome = False
+        driver = webdriver.Ie(service=IEService(IEDriverManager().install()),options=ie_options)          
         try:
             driver.set_page_load_timeout(delay-5)
             driver.get(plant_list[plant]["url"])
         except:
+            driver.maximize_window()
             time.sleep(delay)
-            pyautogui.moveTo(1070,600,duration=1)
+            pyautogui.moveTo(1366,574,duration=1)
             pyautogui.click()
             pyautogui.typewrite(plant_list[plant]["user"],interval=0.1)
-            pyautogui.moveTo(1070,650,duration=1)
+            pyautogui.moveTo(1366,627,duration=1)
             pyautogui.click()
             pyautogui.typewrite(plant_list[plant]["password"],interval=0.1)
-            pyautogui.moveTo(1070,720,duration=1)
+            pyautogui.moveTo(1366,700,duration=1)
             pyautogui.click()
-            driver.maximize_window()
             
             time.sleep(delay+5)
 
@@ -80,6 +99,15 @@ def capture_dvr(plant_list,plant,delay):
                     ss_region = (0,0,1920,1080)
                     ss_img = ImageGrab.grab(ss_region)
                     ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
+                    color_palette = fast_colorthief.get_palette(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"),2,2)
+                    if color_palette[0][0] > 220 and color_palette[0][1] > 220 and color_palette[0][2] > 220:
+                        offline_plants.append(plant)
+                        file = open(os.path.join(cwd,f"{folder_name}","Offline Plants.csv"), 'a', newline ="")
+                        with file:
+                            write = csv.writer(file)
+                            write.writerow([plant])
+                    if plant not in offline_plants:
+                        check_cameras(plant_list[plant]["grid"],plant_list[plant]["cams"],plant_list,plant)
                     pyautogui.moveTo(1900,30,duration=0.5)
                     pyautogui.click()                     
             elif plant_list[plant]["gui"] == "hik-2":
@@ -90,10 +118,17 @@ def capture_dvr(plant_list,plant,delay):
                     ss_region = (0,0,1920,1080)
                     ss_img = ImageGrab.grab(ss_region)
                     ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
+                    color_palette = fast_colorthief.get_palette(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"),2,2)
+                    if color_palette[0][0] > 220 and color_palette[0][1] > 220 and color_palette[0][2] > 220:
+                        file = open(os.path.join(cwd,f"{folder_name}","Offline Plants.csv"), 'a', newline ='')
+                        with file:
+                            write = csv.writer(file)
+                            write.writerow([plant])
+                    check_cameras(plant_list[plant]["grid"],plant_list[plant]["cams"],plant_list,plant)
                     pyautogui.moveTo(1900,30,duration=0.5)
                     pyautogui.click()                   
     else:
-        driver = webdriver.Ie(service=Service(IEDriverManager().install()))
+        driver = webdriver.Ie(service=IEService(IEDriverManager().install()))
         try:
             driver.set_page_load_timeout(delay-5)
             driver.get(plant_list[plant]["url"])
@@ -105,14 +140,22 @@ def capture_dvr(plant_list,plant,delay):
             time.sleep(delay-3)
             ss_region = (0,0,1920,1080)
             ss_img = ImageGrab.grab(ss_region)
-            ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg")) 
-            driver.close()       
+            ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"))
+            color_palette = fast_colorthief.get_palette(os.path.join(cwd,f"{folder_name}",f"{plant}.jpg"),2,2)
+            if color_palette[0][0] > 220 and color_palette[0][1] > 220 and color_palette[0][2] > 220:
+                offline_plants.append(plant)
+                file = open(os.path.join(cwd,f"{folder_name}","Offline Plants.csv"), 'a', newline ="")
+                with file:
+                    write = csv.writer(file)
+                    write.writerow([plant])
+            if plant not in offline_plants:
+                check_cameras(plant_list[plant]["grid"],plant_list[plant]["cams"],plant_list,plant)
+            driver.quit()       
 
 
 # Function to run capture_dvr for all plants in plant_list
 def run_capture_dvr(plant_list):
     global field
-    global offline_plants
     global captured_plants
     global delay
 
@@ -124,34 +167,64 @@ def run_capture_dvr(plant_list):
 
     for plant in plant_list:
         if plant not in captured_plants and [plant] not in captured_plants:
-            if plant in slow_plants:
+            if plant in ultra_slow_plants:
+                capture_dvr(plant_list,plant,6*delay)           
+            elif plant in slow_plants:
                 capture_dvr(plant_list,plant,2*delay)
             elif plant in very_slow_plants:
                 capture_dvr(plant_list,plant,4*delay)
             else:
                 capture_dvr(plant_list,plant,delay)
             captured_plants.append([plant])
-            file = open(os.path.join(cwd,f"{folder_name}","Captured Plants.csv"), 'a', newline ='')
-            with file:
-                write = csv.writer(file)
+            file2 = open(os.path.join(cwd,f"{folder_name}","Captured Plants.csv"), 'a', newline ='')
+            with file2:
+                write = csv.writer(file2)
                 write.writerow(captured_plants[-1])
 
-    if offline_plants:
-        filename = get_variable_name(plant_list)
-        file2 = open(os.path.join(cwd,f"{folder_name}",f"{filename} Offline Plants.csv"), 'w', newline ='')
-        with file2:
-            write = csv.writer(file2)
-            write.writerow(field)
-            write.writerows(offline_plants)
-        offline_plants.clear()
 
-def get_variable_name(variable):
-    for name in globals():
-        if id(globals()[name]) == id(variable):
-            return name
+#Function to check which cameras don't work for specific plant
+def check_cameras(grid,cams_num,plant_list,plant):
+    if plant_list[plant]["type"] == "hik-1":
+        start = (250,200)
+        finish = (1645,940)
+    elif plant_list[plant]["type"] == "hik-2":
+        start = (325,179)
+        finish = (1595,901)
+    elif plant_list[plant]["type"] == "hik-3":
+        start = (251,351)
+        finish = (1645,942)
+    elif plant_list[plant]["type"] == "ever":
+        start = (627,377)
+        finish = (1553,953)
+    width = (finish[0]-start[0])/math.sqrt(grid)
+    height = (finish[1]-start[1])/math.sqrt(grid)
+    off_cameras = ""
+    for i in range(cams_num):
+        y = int(i//math.sqrt(grid))
+        x = i - int((y*math.sqrt(grid)))
+        scrstart_x = int(start[0] + width * x)
+        scrstart_y = int(start[1] + height * y)
+        ss_region = (scrstart_x, scrstart_y, scrstart_x + width, scrstart_y + height)
+        ss_img = ImageGrab.grab(ss_region)
+        ss_img.save(os.path.join(cwd,f"{folder_name}",f"{plant}_Cam{i+1}.jpg"))
+        time.sleep(1)
+        color_palette = io.imread(os.path.join(cwd,f"{folder_name}",f"{plant}_Cam{i+1}.jpg"))[:, :, :]
+        average = color_palette.mean(axis=0).mean(axis=0)
+        if plant_list[plant]["type"] == "hik-1" or plant_list[plant]["type"] == "hik-2" or plant_list[plant]["type"] == "hik-3":
+            if average[0] < 60 and average[1] < 60 and average[2] < 60:
+                off_cameras += f" Cam{i+1}"
         else:
-            return "General"
+            if (average[0] < 60 and average[1] < 60 and average[2] > 220) or (average[0] < 60 and average[1] < 60 and average[2] > 60):
+                off_cameras += f" Cam{i+1}"    
+        os.remove(os.path.join(cwd,f"{folder_name}",f"{plant}_Cam{i+1}.jpg"))
+    if off_cameras != "":
+        file = open(os.path.join(cwd,f"{folder_name}","Cameras Status.csv"), 'a', newline ="")
+        with file:
+            write = csv.writer(file)
+            write.writerow([plant+":"+off_cameras+" not working"])
         
+os.environ['GH_TOKEN'] = "****************************"
+
 root = tk.Tk()
 root.title("DVR Screen Capture")
 
