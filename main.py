@@ -50,6 +50,15 @@ def capture_dvr(plant_list,plant,delay):
             pass
 
         time.sleep(delay+5)
+
+        grid = driver.find_element(By.XPATH, "//i[contains(@class, 'icon-wnd-')]")
+        ng_class_value = grid.get_attribute("class")
+        if ng_class_value == "icon-wnd-2":
+            plant_list[plant]["grid"] = 4
+        elif ng_class_value == "icon-wnd-3":
+            plant_list[plant]["grid"] = 9
+        elif ng_class_value == "icon-wnd-4":
+            plant_list[plant]["grid"] = 16
         
         try:
             if plant_list[plant]["gui"] == "hik-1":
