@@ -20,7 +20,7 @@ blacklist = ["Plant 3","Plant 4","Plant 14","Plant 15","Plant 23","Plant 37","Pl
 
 slow_plants = ["Plant 3","Plant 6","Plant 27"]
 
-very_slow_plants = ["Plant 3","Plant 3"]
+very_slow_plants = ["Plant 15","Plant 17"]
 
 field = ["Offline Plants"]
 field2 = ["Captured Plants"]
